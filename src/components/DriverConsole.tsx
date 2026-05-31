@@ -10,6 +10,7 @@ import {
   UploadCloud, QrCode, Building, Eye, Copy, RefreshCw
 } from "lucide-react";
 import SwiftPortPhoneMockup from "./SwiftPortPhoneMockup";
+import PaymentMethodsModal from "./PaymentMethodsModal";
 
 interface DriverConsoleProps {
   pendingOrders: DeliveryOrder[];
@@ -66,10 +67,12 @@ export default function DriverConsole({
   activeIncentive = { targetTrips: 5, rewardAmount: 350, description: "Rush Hour special: Complete 5 transit consignments today to trigger a pocket-heavy bonus!", isActive: true },
   onChangeIncentive
 }: DriverConsoleProps) {
-  // Console Tab Controller: "active" | "onboard" | "payouts" | "earnings" | "profile" | "admin"
-  const [consoleTab, setConsoleTab] = useState<"active" | "onboard" | "payouts" | "earnings" | "profile" | "admin">(() => {
+  // Console Tab Controller: "active" | "onboard" | "payouts" | "earnings" | "profile" | "admin" | "refer"
+  const [consoleTab, setConsoleTab] = useState<"active" | "onboard" | "payouts" | "earnings" | "profile" | "admin" | "refer">(() => {
     return currentRoleMode === "admin" ? "admin" : "active";
   });
+
+  const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
 
   // State for non-Window.confirm Cancel & Forfeit option
   const [cancelConfirmOrderId, setCancelConfirmOrderId] = useState<string | null>(null);
@@ -79,8 +82,16 @@ export default function DriverConsole({
   const [editedIncentiveReward, setEditedIncentiveReward] = useState(activeIncentive.rewardAmount);
   const [editedIncentiveDesc, setEditedIncentiveDesc] = useState(activeIncentive.description);
   const [editedIncentiveActive, setEditedIncentiveActive] = useState(activeIncentive.isActive);
+  const [maxDenials, setMaxDenials] = useState<number>(20);
+  const [maxCancellations, setMaxCancellations] = useState<number>(1);
   const [adminDriverSearch, setAdminDriverSearch] = useState("");
   const [campaignSuccessToast, setCampaignSuccessToast] = useState<string | null>(null);
+
+  const [milestones] = useState([
+    { trips: 3, reward: 40 },
+    { trips: 5, reward: 80 },
+    { trips: 10, reward: 130 }
+  ]);
 
   // Sync edits if activeIncentive changes
   useEffect(() => {
@@ -215,7 +226,33 @@ export default function DriverConsole({
                 min="0"
                 value={editedIncentiveReward}
                 onChange={(e) => setEditedIncentiveReward(parseInt(e.target.value) || 0)}
-                className="w-full bg-white border border-slate-255 p-3 rounded-2xl text-xs font-black font-mono text-slate-800 text-center focus:outline-none focus:border-indigo-500"
+                className="w-full bg-white border border-slate-250 p-3 rounded-2xl text-xs font-black font-mono text-slate-800 text-center focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="text-[10px] font-black text-slate-505 uppercase tracking-widest block pl-0.5">
+                Max Denials
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={maxDenials}
+                onChange={(e) => setMaxDenials(parseInt(e.target.value) || 0)}
+                className="w-full bg-white border border-slate-250 p-3 rounded-2xl text-xs font-black font-mono text-slate-800 text-center focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="text-[10px] font-black text-slate-505 uppercase tracking-widest block pl-0.5">
+                Max Cancellations
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={maxCancellations}
+                onChange={(e) => setMaxCancellations(parseInt(e.target.value) || 0)}
+                className="w-full bg-white border border-slate-250 p-3 rounded-2xl text-xs font-black font-mono text-slate-800 text-center focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
@@ -268,6 +305,27 @@ export default function DriverConsole({
           </div>
         </div>
 
+        {/* MILESTONE INCENTIVES OVERVIEW */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 space-y-4 shadow-sm">
+          <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest pl-1">
+            Active Milestone Incentives
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {milestones.map((m, idx) => (
+              <div key={idx} className="bg-slate-50 border border-slate-205 p-4 rounded-2xl flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase">Target</span>
+                  <p className="text-sm font-black text-slate-900">{m.trips} Trips</p>
+                </div>
+                <div className="space-y-0.5 text-right">
+                  <span className="text-[10px] text-indigo-500 font-bold uppercase">Reward</span>
+                  <p className="text-sm font-black text-indigo-600">₹{m.reward}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* SEARCHABLE ACTIVE DRIVERS COMPLIANCE, PERFORMANCE, & WALLET LEDGER REGISTRY */}
         <div className="space-y-4 font-sans">
           <div className="flex justify-between items-center flex-wrap gap-4">
@@ -297,6 +355,8 @@ export default function DriverConsole({
                 const suspensionActive = driver.suspendedUntil ? new Date(driver.suspendedUntil).getTime() > Date.now() : false;
                 const driverWithdrawalClaims = withdrawalRequests.filter(w => w.driverId === driver.id);
                 const cancellationCount = driver.cancellationsToday || 0;
+                const denialsCount = driver.denialsCount || 0;
+                const missedOrders = driver.missedOrders || 0;
 
                 return (
                   <div key={`${driver.id}_${idx}`} className={`border p-5 rounded-3xl bg-white space-y-4 transition ${suspensionActive ? 'border-red-200 bg-red-50/10' : 'border-slate-205 bg-white hover:border-slate-350 shadow-sm'}`}>
@@ -955,7 +1015,11 @@ export default function DriverConsole({
 
             {/* Quick Profile overview inside drawer */}
             {activeDriver && (
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-6 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => { setConsoleTab("profile"); setIsDrawerOpen(false); }}
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-6 flex items-center gap-3 text-left hover:bg-slate-100 transition"
+              >
                 <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center font-bold text-orange-400 border border-slate-800 shadow-sm relative">
                   {activeDriver.name.charAt(0)}
                   <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white"></span>
@@ -964,97 +1028,110 @@ export default function DriverConsole({
                   <h4 className="font-extrabold text-xs text-slate-900 line-clamp-1">{activeDriver.name}</h4>
                   <p className="text-[10px] text-slate-500 font-mono mt-0.5">{activeDriver.vehicleNumber}</p>
                 </div>
-              </div>
+              </button>
             )}
 
             {/* Drawer Items list matching Screenshot 3 */}
             <div className="space-y-2.5 flex-1">
-              <button
-                onClick={() => { setConsoleTab("earnings"); setIsDrawerOpen(false); }}
-                className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "earnings" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                    <TrendingUp className="w-4 h-4" />
+{currentRoleMode === 'rider' ? (
+                <>
+                  <button
+                    onClick={() => { setConsoleTab("earnings"); setIsDrawerOpen(false); }}
+                    className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "earnings" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                        <TrendingUp className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-semibold">Earnings</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  </button>
+                  <button
+                    onClick={() => { setConsoleTab("payouts"); setIsDrawerOpen(false); }}
+                    className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "payouts" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
+                        <ArrowDownToLine className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-semibold">Ledger & Payouts</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  </button>
+                  <button
+                    onClick={() => { setConsoleTab("active"); setIsDrawerOpen(false); }}
+                    className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "active" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                        <Compass className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-semibold">Jobs Board</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  </button>
+                  {!activeDriver && (
+                    <button
+                      onClick={() => { setConsoleTab("onboard"); setIsDrawerOpen(false); }}
+                      className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "onboard" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                          <UserPlus className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-semibold">Join Partner</span>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setConsoleTab("profile"); setIsDrawerOpen(false); }}
+                    className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "profile" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-semibold">Profile & Bank Details</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  </button>
+                  
+                  {activeDriver && (
+                    <button
+                      onClick={() => { setConsoleTab("refer"); setIsDrawerOpen(false); }}
+                      className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition mt-2 ${consoleTab === "refer" ? "bg-indigo-50 font-bold text-indigo-700" : "hover:bg-indigo-50/50 text-indigo-600"}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                          <Gift className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold">Refer & Earn</span>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-indigo-400" />
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button
+                  onClick={() => { setConsoleTab("admin"); setIsDrawerOpen(false); }}
+                  className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "admin" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-semibold">Admin Verification</span>
                   </div>
-                  <span className="text-xs font-semibold">Earnings</span>
-                </div>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-
-              <button
-                onClick={() => { setConsoleTab("payouts"); setIsDrawerOpen(false); }}
-                className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "payouts" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
-                    <ArrowDownToLine className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-semibold">Ledger & Payouts</span>
-                </div>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-
-              <button
-                onClick={() => { setConsoleTab("active"); setIsDrawerOpen(false); }}
-                className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "active" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                    <Compass className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-semibold">Jobs Board</span>
-                </div>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-
-              <button
-                onClick={() => { setConsoleTab("onboard"); setIsDrawerOpen(false); }}
-                className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "onboard" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                    <UserPlus className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-semibold">Join Partner</span>
-                </div>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-
-              <button
-                onClick={() => { setConsoleTab("profile"); setIsDrawerOpen(false); }}
-                className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "profile" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-semibold">Profile & Bank Details</span>
-                </div>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-
-              <button
-                onClick={() => { setConsoleTab("admin"); setIsDrawerOpen(false); }}
-                className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${consoleTab === "admin" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-semibold">Admin Verification</span>
-                </div>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              </button>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+              )}
 
               <div className="border-t border-slate-100 pt-3 mt-4 space-y-1">
                 <div className="flex items-center gap-2.5 py-1 px-3 text-[10px] text-slate-400">
                   <GraduationCap className="w-4 h-4 text-orange-500 animate-pulse" />
                   <span>Simulated Training Complete</span>
-                </div>
-                <div className="flex items-center gap-2.5 py-1 px-3 text-[10px] text-slate-400">
-                  <Gift className="w-4 h-4 text-yellow-500" />
-                  <span>Refer & Earn Code: <strong className="text-orange-500 font-mono">{activeDriver ? (activeDriver.referralCode || "SWIFTPORT500") : "SWIFTPORT500"}</strong></span>
                 </div>
                 <div className="flex items-center gap-2.5 py-1 px-3 text-[10px] text-slate-400">
                   <Shield className="w-4 h-4 text-emerald-500" />
@@ -1071,94 +1148,61 @@ export default function DriverConsole({
       )}
       
       {/* Rider Header Bar with Hamburger and click-to-profile Rider name */}
-      {currentRoleMode === 'rider' ? (
-        <div className="flex items-center justify-between bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
-          {/* Three Lines Hamburger Menu */}
+      <div className="flex items-center justify-between bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg gap-4">
+        {currentRoleMode === 'rider' && (
+          /* Three Lines Hamburger Menu */
           <button
             type="button"
             onClick={() => setIsDrawerOpen(true)}
             className="p-2.5 bg-slate-800 hover:bg-slate-700 text-white hover:text-orange-400 rounded-xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-1.5 shrink-0 border border-slate-700/60 active:scale-95 group"
-            title="Open Rider Drawer Menu"
+            title="Open Drawer Menu"
           >
             <Menu className="w-4 h-4 text-orange-400 group-hover:rotate-90 transition-transform duration-200" />
             <span className="text-[11px] font-black uppercase tracking-widest hidden sm:inline text-slate-100 group-hover:text-orange-400">Menu</span>
           </button>
+        )}
 
-          {/* Clickable Rider Name profile entry */}
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <span className="text-[9px] text-slate-500 block uppercase font-bold tracking-widest">Active Partner Profile</span>
+        {currentRoleMode === 'rider' ? (
+          /* Placeholder to keep layout gap if needed, or just let menu take up space if required */
+          <div className="flex-1" />
+        ) : (
+          /* Tab select switcher bar for Admin console */
+          isAdminLoggedIn ? (
+            <div className="flex bg-slate-250 p-1 rounded-xl bg-slate-200 border border-slate-350 shrink-0 select-none overflow-x-auto gap-1 flex-1">
               <button
-                type="button"
-                onClick={() => setConsoleTab("profile")}
-                className="font-black text-slate-100 hover:text-orange-400 text-sm transition hover:underline cursor-pointer flex items-center gap-1.5 focus:outline-none justify-end w-full"
-                title="Navigate to profile and identity settings"
+                onClick={() => setConsoleTab("admin")}
+                className={`px-3 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                  consoleTab === "admin" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-805"
+                }`}
               >
-                <span>{activeDriver?.name || "Ramesh Shinde"}</span>
-                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-lg border border-emerald-500/20 font-extrabold font-mono">
-                  ★{activeDriver?.rating || "4.8"}
-                </span>
+                <Lock className="w-3.5 h-3.5 text-indigo-500" />
+                Admin Verification
+                {joinees.some(j => j.documentStatus === "pending") && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                )}
+              </button>
+              <button
+                onClick={() => setConsoleTab("payouts")}
+                className={`px-3 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                  consoleTab === "payouts" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-805"
+                }`}
+              >
+                <ArrowDownToLine className="w-3.5 h-3.5 text-blue-500" />
+                Approve Withdrawals
+                {withdrawalRequests.some(w => w.status === "pending") && (
+                  <span className="bg-amber-500 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded-full leading-none animate-pulse">
+                    {withdrawalRequests.filter(w => w.status === "pending").length}
+                  </span>
+                )}
               </button>
             </div>
-            
-            {activeDriver?.avatar ? (
-              <button
-                type="button"
-                onClick={() => setConsoleTab("profile")}
-                className="w-10 h-10 rounded-full border-2 border-orange-500/60 bg-slate-950 overflow-hidden shadow-md focus:outline-none cursor-pointer transition hover:scale-105 active:scale-95 relative"
-                title="View partner documents"
-              >
-                <img 
-                  referrerPolicy="no-referrer"
-                  src={activeDriver.avatar} 
-                  alt={activeDriver.name} 
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConsoleTab("profile")}
-                className="w-10 h-10 rounded-full border-2 border-orange-500/60 bg-orange-500/10 flex items-center justify-center font-black text-orange-400 shrink-0 shadow-md transition hover:scale-105 active:scale-95"
-              >
-                {activeDriver ? activeDriver.name.charAt(0) : "R"}
-              </button>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* Tab select switcher bar for Admin console */
-        <div className="flex items-center gap-2">
-          <div className="flex bg-slate-250 p-1 rounded-xl bg-slate-200 border border-slate-350 shrink-0 select-none overflow-x-auto gap-1 flex-1">
-            <button
-              onClick={() => setConsoleTab("admin")}
-              className={`px-3 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                consoleTab === "admin" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-805"
-              }`}
-            >
-              <Lock className="w-3.5 h-3.5 text-indigo-500" />
-              Admin Verification
-              {joinees.some(j => j.documentStatus === "pending") && (
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
-              )}
-            </button>
-            <button
-              onClick={() => setConsoleTab("payouts")}
-              className={`px-3 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                consoleTab === "payouts" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-805"
-              }`}
-            >
-              <ArrowDownToLine className="w-3.5 h-3.5 text-blue-500" />
-              Approve Withdrawals
-              {withdrawalRequests.some(w => w.status === "pending") && (
-                <span className="bg-amber-500 text-white font-extrabold text-[9px] px-1.5 py-0.5 rounded-full leading-none animate-pulse">
-                  {withdrawalRequests.filter(w => w.status === "pending").length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
+          ) : (
+            <div className="text-slate-400 text-xs font-bold flex items-center justify-center flex-1">
+              Admin Login Required
+            </div>
+          )
+        )}
+      </div>
 
       {/* VIEW 1: ACTIVE JOBS BOARD */}
       {consoleTab === "active" && (
@@ -1339,22 +1383,7 @@ export default function DriverConsole({
                             if (setToastMessage) setToastMessage("Please enter a valid amount!");
                             return;
                           }
-                          updateActiveDriver({
-                            walletBalance: (activeDriver.walletBalance || 0) + amount,
-                            walletTransactions: [
-                              {
-                                id: `tx_recharge_${Date.now()}`,
-                                amount,
-                                desc: `Dashboard UPI Wallet Recharge`,
-                                timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' today'
-                              },
-                              ...(activeDriver.walletTransactions || [])
-                            ]
-                          });
-                          if (setToastMessage) {
-                            setToastMessage(`Success! Recharged ₹${amount} into passbook wallet.`);
-                          }
-                          setShowRiderRecharge(false);
+                          setIsRechargeModalOpen(true);
                         }}
                         className="bg-orange-500 hover:bg-orange-600 text-white font-black px-4.5 py-2.5 rounded-xl text-xs transition active:scale-95 cursor-pointer leading-none"
                       >
@@ -1364,6 +1393,35 @@ export default function DriverConsole({
                   </div>
                 )}
               </div>
+
+              {/* Recharge Wallet Payment Methods Modal */}
+              {activeDriver && (
+                <PaymentMethodsModal
+                  isOpen={isRechargeModalOpen}
+                  onClose={() => setIsRechargeModalOpen(false)}
+                  onPaymentSuccess={() => {
+                    const amount = parseInt(riderRechargeInput, 10) || 0;
+                    setIsRechargeModalOpen(false);
+                    updateActiveDriver({
+                      walletBalance: (activeDriver.walletBalance || 0) + amount,
+                      walletTransactions: [
+                        {
+                          id: `tx_recharge_${Date.now()}`,
+                          amount,
+                          desc: `Dashboard UPI Wallet Recharge`,
+                          timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' today'
+                        },
+                        ...(activeDriver.walletTransactions || [])
+                      ]
+                    });
+                    if (setToastMessage) {
+                      setToastMessage(`Success! Recharged ₹${amount} into passbook wallet.`);
+                    }
+                    setShowRiderRecharge(false);
+                  }}
+                  amount={parseInt(riderRechargeInput, 10) || 0}
+                />
+              )}
 
               {/* Wallet payout and history panel */}
               <div className="bg-white border border-slate-200 p-5 rounded-3xl space-y-4 shadow-sm text-slate-850">
@@ -4290,6 +4348,45 @@ export default function DriverConsole({
             {/* Bottom-aligned App version metadata */}
             <div className="text-center pt-2">
               <p className="text-[10px] text-slate-400 font-mono">App Version 5.151.0</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {consoleTab === "refer" && activeDriver && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+            <h2 className="text-xl font-extrabold text-slate-800 tracking-tight">Refer & Earn Dashboard</h2>
+          </div>
+
+          <div className="bg-gradient-to-br from-[#0c3e9e] to-indigo-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center gap-6 border border-indigo-900 mx-auto w-full">
+            <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4">
+              <Gift className="w-64 h-64" />
+            </div>
+            
+            <div className="flex-1 z-10 space-y-2 text-center md:text-left">
+               <span className="text-[11px] font-black uppercase text-orange-300 tracking-widest block bg-orange-300/10 w-fit mx-auto md:mx-0 px-2 py-1 rounded-full border border-orange-300/20">Refer & Earn Program</span>
+               <h3 className="text-2xl font-black text-white leading-tight">Partner with Us, Earn Extra Cash</h3>
+               <p className="text-[12px] md:text-sm text-indigo-200 mt-1 max-w-sm">Share your invite code with friends to join the network. When they complete their first delivery, you both get ₹250 directly into your wallets.</p>
+            </div>
+            
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full md:w-64 text-center shrink-0 z-10 backdrop-blur-sm shadow-inner">
+               <span className="text-[10px] text-indigo-200 uppercase font-bold tracking-widest">Your Code</span>
+               <div className="text-xl font-mono font-black text-amber-400 my-2 bg-black/20 py-2 rounded-xl border border-black/30">
+                 {activeDriver.referralCode || "SWIFTPARTNER"}
+               </div>
+               
+               <button
+                 type="button"
+                 onClick={() => {
+                   navigator.clipboard.writeText(activeDriver.referralCode || "SWIFTPARTNER");
+                   alert("Referral code copied successfully! Share it to start earning.");
+                 }}
+                 className="mt-3 w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-2.5 rounded-xl text-xs transition active:scale-95 shadow-lg flex items-center justify-center gap-1.5 cursor-pointer border-none"
+               >
+                 <Copy className="w-3.5 h-3.5" />
+                 Copy Code
+               </button>
             </div>
           </div>
         </div>

@@ -178,31 +178,6 @@ export default function CustomerProfileTab({
         </div>
       </div>
 
-      {/* REFER & EARN SAVINGS */}
-      <div className="bg-gradient-to-br from-[#0c3e9e] to-indigo-950 text-white rounded-3xl p-6 shadow-md relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-4 border border-indigo-900 text-left">
-        <div className="space-y-1 text-center md:text-left">
-          <span className="text-[9px] font-black uppercase text-orange-300 tracking-wider">refer and earn credits</span>
-          <h3 className="text-sm font-black text-white">Save ₹200 on logistics dispatches</h3>
-          <p className="text-[10px] text-indigo-200 max-w-sm mt-0.5">Invite your carrier networks or company clients to simulate moves. They get a ₹200 starting discount, and you get ₹200 added to your credits!</p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="bg-white/10 border border-white/10 rounded-2xl px-4 py-2.5 font-mono text-xs font-black text-amber-300">
-            SWIFT-SIDDHANT99
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText("SWIFT-SIDDHANT99");
-              alert("Referral code copied successfully! Share it during client signups to win credits.");
-            }}
-            className="bg-white hover:bg-slate-100 text-slate-900 rounded-2xl px-3.5 py-2.5 font-bold text-xs transition min-w-[36px] flex items-center justify-center cursor-pointer border-none shadow"
-          >
-            <Share2 className="w-4 h-4 text-slate-800" />
-          </button>
-        </div>
-      </div>
-
       {/* Platform Credentials */}
       <div className="text-center font-mono text-[9px] text-slate-400">
          SwiftPort Intra-city Delivery Network &bull; Version 2026.1.0 &bull; Licensed Sandbox Core Engine

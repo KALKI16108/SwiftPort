@@ -22,7 +22,7 @@ import { APIProvider } from "@vis.gl/react-google-maps";
 import { 
   Bike, Truck, Bus, Grid, Compass, Navigation, MapPin, 
   History, UserCheck, ShieldCheck, CreditCard, Sparkles, AlertCircle, Info, Clock, CheckCircle, Headphones,
-  Heart, Building, Gift, User, Wallet, ArrowRight, Receipt, FileText, LogOut, Share2, PlusCircle, Plus, Check, Trash2
+  Heart, Building, Gift, User, Wallet, ArrowRight, Receipt, FileText, LogOut, Share2, PlusCircle, Plus, Check, Trash2, Menu, X, ChevronRight
 } from "lucide-react";
 
 // Prepopulate history with realistic completed trips to make the system rich from launch
@@ -86,8 +86,9 @@ const API_KEY =
 const hasValidKey = Boolean(API_KEY) && API_KEY !== 'YOUR_API_KEY';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"book" | "orders" | "payments" | "profile">("book");
+  const [activeTab, setActiveTab] = useState<"book" | "orders" | "payments" | "profile" | "refer">("book");
   const [bypassKeyCheck, setBypassKeyCheck] = useState(true);
+  const [isCustomerDrawerOpen, setIsCustomerDrawerOpen] = useState(false);
 
   // Consolidated Role-based account environment switcher
   const [currentRole, setCurrentRole] = useState<'customer' | 'driver' | 'support' | 'admin' | null>(() => {
@@ -1361,57 +1362,15 @@ export default function App() {
           </div>
 
           {/* Quick tab controllers for Customer Role */}
-          {currentRole === 'customer' && (
-            <nav className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
-              <button
-                onClick={() => setActiveTab("book")}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeTab === "book" 
-                    ? "bg-orange-500 text-white shadow-md shadow-orange-200" 
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-                id="tab-btn-home"
-              >
-                <Compass className="w-3.5 h-3.5" />
-                <span>Home</span>
-              </button>
-              <button
-                onClick={() => setActiveTab("orders")}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeTab === "orders" 
-                    ? "bg-orange-500 text-white shadow-md shadow-orange-200" 
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-                id="tab-btn-orders"
-              >
-                <Grid className="w-3.5 h-3.5" />
-                <span>Orders</span>
-              </button>
-              <button
-                onClick={() => setActiveTab("payments")}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeTab === "payments" 
-                    ? "bg-orange-500 text-white shadow-md shadow-orange-200" 
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-                id="tab-btn-payments"
-              >
-                <Wallet className="w-3.5 h-3.5" />
-                <span>Payments</span>
-              </button>
-              <button
-                onClick={() => setActiveTab("profile")}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  activeTab === "profile" 
-                    ? "bg-orange-500 text-white shadow-md shadow-orange-200" 
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-                id="tab-btn-profile"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>Account</span>
-              </button>
-            </nav>
+          {currentRole === 'customer' && customerSession && (
+            <button
+              type="button"
+              onClick={() => setIsCustomerDrawerOpen(true)}
+              className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-orange-500 rounded-xl shadow-sm cursor-pointer transition-all flex items-center gap-1.5 shrink-0 border border-slate-200 group focus:outline-none"
+              title="Open Menu"
+            >
+              <Menu className="w-4 h-4 text-orange-500 group-hover:scale-110 transition-transform duration-200" />
+            </button>
           )}
 
           {/* Workspace titles to guide team members */}
@@ -1431,15 +1390,6 @@ export default function App() {
               </span>
             </div>
           )}
-          {currentRole === 'admin' && (
-            <div className="flex items-center gap-2">
-              <span className="bg-indigo-50 text-indigo-800 px-3.5 py-1.5 rounded-xl text-xs font-black tracking-wide border border-indigo-200 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                Fleet Admin Command Center
-              </span>
-            </div>
-          )}
-
           {/* User Session status OR Switch Role actions */}
           {currentRole === 'customer' && customerSession ? (
             <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 pl-3.5 pr-2.5 py-1 rounded-xl shadow-sm">
@@ -1557,6 +1507,37 @@ export default function App() {
             setSavedAddresses={setSavedAddresses}
             setPickup={setPickup}
           />
+        )}
+
+        {currentRole === "customer" && activeTab === "refer" && (
+          <div className="space-y-6 animate-fadeIn">
+            <h2 className="text-xl font-black text-slate-800">Refer & Earn</h2>
+            <div className="bg-gradient-to-br from-[#0c3e9e] to-indigo-950 text-white rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 border border-indigo-900 text-left">
+              <div className="space-y-3 text-center md:text-left flex-1">
+                <span className="text-[11px] font-black uppercase text-orange-300 tracking-widest block bg-orange-300/10 w-fit md:mx-0 mx-auto px-2 py-1 rounded-full border border-orange-300/20">refer and earn credits</span>
+                <h3 className="text-2xl font-black text-white leading-tight">Save ₹200 on logistics dispatches</h3>
+                <p className="text-xs md:text-sm text-indigo-200 max-w-sm mt-0.5 leading-relaxed">Invite your carrier networks or company clients to simulate moves. They get a ₹200 starting discount, and you get ₹200 added to your credits!</p>
+              </div>
+
+              <div className="flex flex-col items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/10 shrink-0 w-full md:w-auto">
+                <p className="text-[10px] text-indigo-200 uppercase font-black tracking-widest text-center w-full">Your Invite Code</p>
+                <div className="bg-white/10 border border-white/20 rounded-xl px-5 py-3 font-mono text-lg font-black text-amber-400 text-center w-full shadow-inner">
+                  SWIFT-SIDDHANT99
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText("SWIFT-SIDDHANT99");
+                    alert("Referral code copied successfully! Share it during client signups to win credits.");
+                  }}
+                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-6 py-3 font-black text-xs transition w-full flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-95"
+                >
+                  <Share2 className="w-4 h-4" />
+                  SHARE CODE
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* FORMER CORE RENDERING DISABLED */}
@@ -2397,6 +2378,118 @@ export default function App() {
       )}
 
       {/* Premium Customer Sign-In Welcome Gate (Solves Direct Login requirement) */}
+      {/* Sliding Navigation Drawer from Left for Customer */}
+      {isCustomerDrawerOpen && (
+        <>
+          <div 
+            onClick={() => setIsCustomerDrawerOpen(false)} 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[130] cursor-pointer"
+          />
+          <div className="fixed top-0 left-0 w-[290px] h-full bg-white shadow-2xl z-[140] flex flex-col p-6 overflow-y-auto animate-slideInLeft text-slate-800">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+              <div className="flex items-center gap-2">
+                <span className="font-black text-orange-500 text-sm tracking-widest uppercase">SWIFTPORT</span>
+              </div>
+              <button 
+                onClick={() => setIsCustomerDrawerOpen(false)}
+                className="p-1 hover:bg-slate-100 rounded-full cursor-pointer transition text-slate-500 hover:text-slate-900 border-none bg-transparent"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick Profile overview inside drawer */}
+            {customerSession && (
+              <button
+                type="button"
+                onClick={() => { setActiveTab("profile"); setIsCustomerDrawerOpen(false); }}
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-6 flex items-center gap-3 text-left hover:bg-slate-100 transition"
+              >
+                <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center font-bold text-orange-400 border border-slate-800 shadow-sm relative">
+                  {customerSession.name.charAt(0).toUpperCase()}
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border border-white"></span>
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-xs text-slate-900 line-clamp-1">{customerSession.name}</h4>
+                  <p className="text-[10px] text-slate-500 font-mono mt-0.5">{customerSession.phone}</p>
+                </div>
+              </button>
+            )}
+
+            {/* Drawer Items */}
+            <div className="space-y-2.5 flex-1">
+              <button
+                onClick={() => { setActiveTab("book"); setIsCustomerDrawerOpen(false); }}
+                className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${activeTab === "book" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-bold">
+                    <Compass className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-semibold">Home</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+
+              <button
+                onClick={() => { setActiveTab("orders"); setIsCustomerDrawerOpen(false); }}
+                className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${activeTab === "orders" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                    <Grid className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-semibold">Orders</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+
+              <button
+                onClick={() => { setActiveTab("payments"); setIsCustomerDrawerOpen(false); }}
+                className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${activeTab === "payments" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-semibold">Payments</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+
+              <button
+                onClick={() => { setActiveTab("profile"); setIsCustomerDrawerOpen(false); }}
+                className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition ${activeTab === "profile" ? "bg-slate-100 font-bold text-slate-900" : "hover:bg-slate-50 text-slate-600"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-semibold">Account</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+            </div>
+            
+            <div className="border-t border-slate-100 pt-5 mt-4 space-y-2">
+              <button
+                onClick={() => { setActiveTab("refer"); setIsCustomerDrawerOpen(false); }}
+                className={`w-full py-2 px-3 rounded-xl flex items-center justify-between text-left transition ${activeTab === "refer" ? "bg-indigo-50 font-bold text-indigo-700" : "hover:bg-indigo-50/50 text-indigo-600"}`}
+              >
+                <div className="flex items-center gap-2">
+                  <Gift className="w-3.5 h-3.5" />
+                  <span className="text-xs font-bold">Refer & Earn</span>
+                </div>
+                <ChevronRight className="w-3 h-3 text-indigo-400" />
+              </button>
+              <div className="text-[10px] text-slate-400 px-3 pt-2 pb-1">
+                <p>App Version: 4.8.2-client</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {currentRole === "customer" && !customerSession && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[120] flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white rounded-[32px] p-8 max-w-md w-full border border-slate-100 shadow-2xl space-y-6 animate-scaleIn relative overflow-hidden">

@@ -334,12 +334,16 @@ export default function IncomingAlertOverlay({
           {/* Addresses and coordinates */}
           <div className="flex-1 space-y-4 text-xs">
             <div className="space-y-0.5">
-              <span className="text-[8.5px] uppercase font-black tracking-widest text-emerald-450 text-[#10b981] font-mono leading-none block">PICKUP SITE</span>
-              <p className="font-extrabold text-slate-205 text-slate-200 line-clamp-1">{pingableOrder.pickup.name}</p>
+              <span className="text-[8.5px] uppercase font-black tracking-widest text-emerald-450 text-[#10b981] font-mono leading-none block">Pickup location</span>
+              <p className="font-extrabold text-slate-205 text-slate-200 line-clamp-1">
+                {pingableOrder.pickup.name} ({activeDriverDistanceKm > 0 ? activeDriverDistanceKm.toFixed(1) : "3.3"}km)
+              </p>
             </div>
             <div className="space-y-0.5 pt-0.5">
-              <span className="text-[8.5px] uppercase font-black tracking-widest text-rose-450 text-[#ef4444] font-mono leading-none block">DROPOFF SITE</span>
-              <p className="font-extrabold text-slate-205 text-slate-200 line-clamp-1">{pingableOrder.dropoff.name}</p>
+              <span className="text-[8.5px] uppercase font-black tracking-widest text-rose-450 text-[#ef4444] font-mono leading-none block">Drop location</span>
+              <p className="font-extrabold text-slate-205 text-slate-200 line-clamp-1">
+                {pingableOrder.dropoff.name} ({pingableOrder.distanceKm ? pingableOrder.distanceKm.toFixed(2) : "19.00"}km)
+              </p>
             </div>
           </div>
         </div>

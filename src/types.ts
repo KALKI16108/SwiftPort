@@ -51,6 +51,8 @@ export interface Driver {
   currentLat: number;
   currentLng: number;
   cancellationsToday?: number;
+  denialsCount?: number;
+  missedOrders?: number;
   suspendedUntil?: string;
   walletBalance?: number; // Represent driver wallet balance
   address?: string;
