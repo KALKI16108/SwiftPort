@@ -1,0 +1,8 @@
+{
+  "name": "SwiftPort",
+  "description": "SwiftPort is an intra-city on-demand logistics booking platform and delivery coordinator. Features include dynamic distance/routing simulators, multi-vehicle fleet selectors, parcel categorization, automated driver dispatching animations, real-time driver rating models, and a server-backed Gemini AI package estimator.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
